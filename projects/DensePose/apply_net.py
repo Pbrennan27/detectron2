@@ -312,8 +312,10 @@ class ShowAction(InferenceAction):
         image_vis = cv2.resize(im,dim)
 
 
-        cv2.imshow('out_fname',image_vis)
+        #cv2.imshow('out_fname',image_vis)
+
         cv2.waitKey(1)
+        cv2.imshow('original', im)
         #-----------------------------------------------------------------------------------------------------------
         #logger.info(f"Output saved to {out_fname}")
         context["entry_idx"] += 1
