@@ -43,6 +43,8 @@ from densepose.vis.extractor import (
     create_extractor,
 )
 
+import cv2
+vid = cv2.VideoCapture(1)
 DOC = """Apply Net - a tool to print / visualize DensePose results
 """
 
@@ -86,6 +88,8 @@ class InferenceAction(Action):
             nargs=argparse.REMAINDER,
         )
 
+
+
     @classmethod
     def execute(cls: type, args: argparse.Namespace):
         logger.info(f"Loading config from {args.cfg}")
@@ -99,8 +103,17 @@ class InferenceAction(Action):
             logger.warning(f"No input images for {args.input}")
             return
         context = cls.create_context(args, cfg)
-        for file_name in file_list:
-            img = read_image(file_name, format="BGR")  # predictor expects BGR image.
+
+
+        #for file_name in file_list: #----------------------------------------------------------------------------------------------------------
+        while 1:
+            file_name = file_list[0]
+            #img = read_image(file_name, format="BGR")  # predictor expects BGR image.
+            #img = cv2.imread('projects/DensePose/image.jpg')
+            ret, frame = vid.read()
+            img = frame
+            """cv2.imshow('test',img)
+            cv2.waitKey(1)"""
             with torch.no_grad():
                 outputs = predictor(img)["instances"]
                 cls.execute_on_outputs(context, {"file_name": file_name, "image": img}, outputs)
@@ -288,7 +301,9 @@ class ShowAction(InferenceAction):
         out_dir = os.path.dirname(out_fname)
         if len(out_dir) > 0 and not os.path.exists(out_dir):
             os.makedirs(out_dir)
-        cv2.imwrite(out_fname, image_vis)
+        #cv2.imwrite(out_fname, image_vis)
+        cv2.imshow('out_fname',image_vis)
+        cv2.waitKey(1)#-----------------------------------------------------------------------------------------------------------
         logger.info(f"Output saved to {out_fname}")
         context["entry_idx"] += 1
 
@@ -343,10 +358,14 @@ def create_argument_parser() -> argparse.ArgumentParser:
 def main():
     parser = create_argument_parser()
     args = parser.parse_args()
+    args.input = 'projects/DensePose/photo1.jpg'
+    #args = parser.parse_args(['show', 'configs\densepose_rcnn_R_50_FPN_DL_s1x.yaml', 'densepose_rcnn_R_50_FPN_s1x.pkl',  'photo.jpg','dp_iuv_texture', '--texture_atlas','texture_from_SURREAL.png', '-v'])
+    #args = parser.parse_args([--verbosity='1', cfg='projects/DensePose/configs/densepose_rcnn_R_50_FPN_s1x.yaml', model='projects/DensePose/densepose_rcnn_R_50_FPN_s1x.pkl', input='projects/DensePose/photo.jpg', opts=[], visualizations='dp_iuv_texture', min_score=0.8, nms_thresh=None, texture_atlas='projects/DensePose/texture_from_SURREAL.png', texture_atlases_map=None, output='outputres.png'])
     verbosity = args.verbosity if hasattr(args, "verbosity") else None
     global logger
     logger = setup_logger(name=LOGGER_NAME)
     logger.setLevel(verbosity_to_level(verbosity))
+
     args.func(args)
 
 
