@@ -292,7 +292,11 @@ class ShowAction(InferenceAction):
         extractor = context["extractor"]
         image_fpath = entry["file_name"]
         #logger.info(f"Processing {image_fpath}")
+
         im = entry["image"]
+        cv2.imshow('original', im)
+
+
         #im = np.tile(im[:, :, np.newaxis], [1, 1, 3])
         image = cv2.cvtColor(entry["image"], cv2.COLOR_BGR2GRAY)
         image = np.tile(image[:, :, np.newaxis], [1, 1, 3])
@@ -309,13 +313,11 @@ class ShowAction(InferenceAction):
         width = im.shape[1]
         height = im.shape[0]
         dim = (width*3, height*3)
-        image_vis = cv2.resize(im,dim)
+        #image_vis = cv2.resize(im,dim)
 
 
-        #cv2.imshow('out_fname',image_vis)
-
+        cv2.imshow('out_fname',image_vis)
         cv2.waitKey(1)
-        cv2.imshow('original', im)
         #-----------------------------------------------------------------------------------------------------------
         #logger.info(f"Output saved to {out_fname}")
         context["entry_idx"] += 1
