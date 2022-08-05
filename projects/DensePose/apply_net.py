@@ -306,8 +306,15 @@ class ShowAction(InferenceAction):
             os.makedirs(out_dir)
         #cv2.imwrite(out_fname, image_vis)
         #image_vis = cv2.cvtColor(image_vis,cv2.COLOR_GRAY2RGB)
+        width = im.shape[1]
+        height = im.shape[0]
+        dim = (width*3, height*3)
+        image_vis = cv2.resize(im,dim)
+
+
         cv2.imshow('out_fname',image_vis)
-        cv2.waitKey(1)#-----------------------------------------------------------------------------------------------------------
+        cv2.waitKey(1)
+        #-----------------------------------------------------------------------------------------------------------
         #logger.info(f"Output saved to {out_fname}")
         context["entry_idx"] += 1
 
