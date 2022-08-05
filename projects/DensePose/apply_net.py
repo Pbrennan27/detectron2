@@ -177,7 +177,7 @@ class DumpAction(InferenceAction):
         cls: type, context: Dict[str, Any], entry: Dict[str, Any], outputs: Instances
     ):
         image_fpath = entry["file_name"]
-        logger.info(f"Processing {image_fpath}")
+        #ogger.info(f"Processing {image_fpath}")
         result = {"file_name": image_fpath}
         if outputs.has("scores"):
             result["scores"] = outputs.get("scores").cpu()
@@ -204,7 +204,7 @@ class DumpAction(InferenceAction):
             os.makedirs(out_dir)
         with open(out_fname, "wb") as hFile:
             pickle.dump(context["results"], hFile)
-            logger.info(f"Output saved to {out_fname}")
+            #logger.info(f"Output saved to {out_fname}")
 
 
 @register_action
@@ -291,20 +291,24 @@ class ShowAction(InferenceAction):
         visualizer = context["visualizer"]
         extractor = context["extractor"]
         image_fpath = entry["file_name"]
-        logger.info(f"Processing {image_fpath}")
+        #logger.info(f"Processing {image_fpath}")
+        im = entry["image"]
+        #im = np.tile(im[:, :, np.newaxis], [1, 1, 3])
         image = cv2.cvtColor(entry["image"], cv2.COLOR_BGR2GRAY)
         image = np.tile(image[:, :, np.newaxis], [1, 1, 3])
         data = extractor(outputs)
-        image_vis = visualizer.visualize(image, data)
+        #image_vis = visualizer.visualize(image, data)
+        image_vis = visualizer.visualize(im, data)
         entry_idx = context["entry_idx"] + 1
         out_fname = cls._get_out_fname(entry_idx, context["out_fname"])
         out_dir = os.path.dirname(out_fname)
         if len(out_dir) > 0 and not os.path.exists(out_dir):
             os.makedirs(out_dir)
         #cv2.imwrite(out_fname, image_vis)
+        #image_vis = cv2.cvtColor(image_vis,cv2.COLOR_GRAY2RGB)
         cv2.imshow('out_fname',image_vis)
         cv2.waitKey(1)#-----------------------------------------------------------------------------------------------------------
-        logger.info(f"Output saved to {out_fname}")
+        #logger.info(f"Output saved to {out_fname}")
         context["entry_idx"] += 1
 
     @classmethod
