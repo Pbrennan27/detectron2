@@ -9,6 +9,7 @@ import pickle
 import sys
 from typing import Any, ClassVar, Dict, List
 import torch
+import csv
 
 from detectron2.config import CfgNode, get_cfg
 from detectron2.data.detection_utils import read_image
@@ -44,7 +45,21 @@ from densepose.vis.extractor import (
 )
 
 import cv2
-vid = cv2.VideoCapture(1)
+import time
+import mediapipe as mp
+from cvzone.FaceMeshModule import FaceMeshDetector
+import keyboard
+from mediapipe.framework.formats import landmark_pb2
+
+
+
+#Results Logging
+f = open(r"DenseposeResults.csv","w")
+writer = csv.writer(f)
+
+
+
+vid = cv2.VideoCapture(1) # Change from 0 to 1 if you see an orange screen, this is caused by multiple cameras being connected
 DOC = """Apply Net - a tool to print / visualize DensePose results
 """
 
@@ -107,6 +122,7 @@ class InferenceAction(Action):
 
         #for file_name in file_list: #----------------------------------------------------------------------------------------------------------
         while 1:
+            start = time.time()
             file_name = file_list[0]
             #img = read_image(file_name, format="BGR")  # predictor expects BGR image.
             #img = cv2.imread('projects/DensePose/image.jpg')
@@ -117,6 +133,9 @@ class InferenceAction(Action):
             with torch.no_grad():
                 outputs = predictor(img)["instances"]
                 cls.execute_on_outputs(context, {"file_name": file_name, "image": img}, outputs)
+            end = time.time()
+            print(end-start,'seconds, FPS:',(1/(end-start)))
+            writer.writerow([end-start,1/(end-start)])
         cls.postexecute(context)
 
     @classmethod
@@ -313,7 +332,7 @@ class ShowAction(InferenceAction):
         width = im.shape[1]
         height = im.shape[0]
         dim = (width*3, height*3)
-        #image_vis = cv2.resize(im,dim)
+        image_vis = cv2.resize(im,dim)
 
 
         cv2.imshow('out_fname',image_vis)
