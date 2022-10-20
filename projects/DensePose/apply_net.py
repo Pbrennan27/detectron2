@@ -50,8 +50,15 @@ import mediapipe as mp
 from cvzone.FaceMeshModule import FaceMeshDetector
 import keyboard
 from mediapipe.framework.formats import landmark_pb2
+import numpy as np
 
+mpDraw = mp.solutions.drawing_utils
+mpPose = mp.solutions.pose
+pose = mpPose.Pose()
 
+flag =1
+s=time.time()
+detector = FaceMeshDetector(maxFaces=1)
 
 #Results Logging
 f = open(r"DenseposeResults.csv","w")
@@ -121,8 +128,17 @@ class InferenceAction(Action):
 
 
         #for file_name in file_list: #----------------------------------------------------------------------------------------------------------
+        flag = 1
+        start = time.time()
+        end=time.time()
+        s = time.time()
         while 1:
-            start = time.time()
+            if (end - s > 1):
+                if keyboard.is_pressed("space"):
+                    flag = flag * -1
+                    s=time.time()
+                    print(flag)
+            start  = time.time()
             file_name = file_list[0]
             #img = read_image(file_name, format="BGR")  # predictor expects BGR image.
             #img = cv2.imread('projects/DensePose/image.jpg')
@@ -132,7 +148,7 @@ class InferenceAction(Action):
             cv2.waitKey(1)"""
             with torch.no_grad():
                 outputs = predictor(img)["instances"]
-                cls.execute_on_outputs(context, {"file_name": file_name, "image": img}, outputs)
+                cls.execute_on_outputs(context, {"file_name": file_name, "image": img}, outputs,flag)
             end = time.time()
             print(end-start,'seconds, FPS:',(1/(end-start)))
             writer.writerow([end-start,1/(end-start)])
@@ -301,8 +317,92 @@ class ShowAction(InferenceAction):
         return cfg
 
     @classmethod
+    def sizeEstimation(cls: type,img, flag):
+        if (flag < 0):
+            pass
+        else:
+            imgface, faces = detector.findFaceMesh(img, draw=False)
+
+            if faces:
+                face = faces[0]
+                pointLeft = face[145]  # Left Irisa
+                pointRight = face[374]  # Right Iris
+
+                wi, _ = detector.findDistance(pointLeft, pointRight)
+                W = 6.3  # 6.3cm distance between Iris's on average
+                f = 840  # focal length of camera
+                d = (W) / wi
+
+                imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                results = pose.process(imgRGB)
+                if results.pose_landmarks:
+                    # mpDraw.draw_landmarks(img,results.pose_landmarks,mpPose.POSE_CONNECTIONS) # shows points on body
+                    # mpDraw.draw_landmarks(img,results.pose_landmarks,frozenset([(11, 12), (11, 23), (12, 24),(23, 24)]))
+                    landmark_subset = landmark_pb2.NormalizedLandmarkList(
+                        landmark=[
+                            results.pose_landmarks.landmark[11],
+                            results.pose_landmarks.landmark[12],
+                            results.pose_landmarks.landmark[23],
+                            results.pose_landmarks.landmark[24],
+                        ]
+                    )
+                    mpDraw.draw_landmarks(img, landmark_subset, frozenset([(0, 1), (0, 2), (1, 3), (2, 3)]))
+                    for id, lm in enumerate(results.pose_landmarks.landmark):
+                        h, w, c = img.shape
+                        cx, cy, cz = int(lm.x * w), int(lm.y * h), int(
+                            lm.z * w)  # cx ,cy are pixel locations of each point
+                        if (id == 11):
+                            # print(id, lm)
+                            cx11 = cx
+                            cy11 = cy
+                            cz11 = cz
+                        if (id == 12):
+                            cx12 = cx
+                            cy12 = cy
+                            cz12 = cz
+                        if (id == 23):
+                            cx23 = cx
+                            cy23 = cy
+                            cz23 = cz
+                        if (id == 24):
+                            cx24 = cx
+                            cy24 = cy
+                            cz24 = cz
+
+                p1 = np.array([cx11, cy11])
+                p2 = np.array([cx12, cy12])
+                squared_dist1 = np.sum((p1 - p2) ** 2, axis=0)
+                dist1 = np.sqrt(squared_dist1)
+
+                p1 = np.array([cx12, cy12])
+                p2 = np.array([cx24, cy24])
+                squared_dist1 = np.sum((p1 - p2) ** 2, axis=0)
+                dist2 = np.sqrt(squared_dist1)
+                # shoulder,_ = w, detector.findDistance([cx11,cy11],[cx12,cy12])
+
+                font = cv2.FONT_HERSHEY_SIMPLEX
+                text1 = str(int(dist1 * d)) + "cm"
+                text2 = str(int(dist2 * d)) + "cm"
+
+                # get boundary of this text
+                textsize = cv2.getTextSize(text1, font, 1, 2)[0]
+
+                # get coords based on boundary
+                # textX = int((cx11 - textsize[0]) / 2)
+                # textY = int((cy11 + textsize[1]) / 2)
+                textX1 = int((cx12 + ((cx11 - cx12) / 2)) - (textsize[0] / 2))
+                textY1 = int(cy12) - 20
+
+                textX2 = int(cx12) - textsize[0] - 20
+                textY2 = int(cy12 + ((cy24 - cy12) / 2) - (textsize[1] / 2))
+
+                # add text centered on image
+                cv2.putText(img, text1, (textX1, textY1), font, 1, (255, 255, 255), 2)
+                cv2.putText(img, text2, (textX2, textY2), font, 1, (255, 255, 255), 2)
+        return img, flag, s
+    @classmethod
     def execute_on_outputs(
-        cls: type, context: Dict[str, Any], entry: Dict[str, Any], outputs: Instances
+        cls: type, context: Dict[str, Any], entry: Dict[str, Any], outputs: Instances,flag
     ):
         import cv2
         import numpy as np
@@ -313,6 +413,8 @@ class ShowAction(InferenceAction):
         #logger.info(f"Processing {image_fpath}")
 
         im = entry["image"]
+
+
         cv2.imshow('original', im)
 
 
@@ -334,7 +436,7 @@ class ShowAction(InferenceAction):
         dim = (width*3, height*3)
         image_vis = cv2.resize(im,dim)
 
-
+        image_vis, flag, s = cls.sizeEstimation(image_vis, flag)
         cv2.imshow('out_fname',image_vis)
         cv2.waitKey(1)
         #-----------------------------------------------------------------------------------------------------------
