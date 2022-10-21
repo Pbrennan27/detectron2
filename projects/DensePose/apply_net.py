@@ -137,7 +137,7 @@ class InferenceAction(Action):
                 if keyboard.is_pressed("space"):
                     flag = flag * -1
                     s=time.time()
-                    print(flag)
+                    #print(flag)
             start  = time.time()
             file_name = file_list[0]
             #img = read_image(file_name, format="BGR")  # predictor expects BGR image.
@@ -150,7 +150,7 @@ class InferenceAction(Action):
                 outputs = predictor(img)["instances"]
                 cls.execute_on_outputs(context, {"file_name": file_name, "image": img}, outputs,flag)
             end = time.time()
-            print(end-start,'seconds, FPS:',(1/(end-start)))
+            #print(end-start,'seconds, FPS:',(1/(end-start)))
             writer.writerow([end-start,1/(end-start)])
         cls.postexecute(context)
 
@@ -346,7 +346,8 @@ class ShowAction(InferenceAction):
                             results.pose_landmarks.landmark[24],
                         ]
                     )
-                    mpDraw.draw_landmarks(img, landmark_subset, frozenset([(0, 1), (0, 2), (1, 3), (2, 3)]))
+                    mpDraw.draw_landmarks(img, landmark_subset, frozenset([(0, 1), (0, 2), (1, 3), (2, 3)]),mpDraw.DrawingSpec(color=(0,0,0), thickness=2, circle_radius=2),
+                    mpDraw.DrawingSpec(color=(0, 0, 0), thickness=2, circle_radius=2))
                     for id, lm in enumerate(results.pose_landmarks.landmark):
                         h, w, c = img.shape
                         cx, cy, cz = int(lm.x * w), int(lm.y * h), int(
@@ -397,8 +398,8 @@ class ShowAction(InferenceAction):
                 textY2 = int(cy12 + ((cy24 - cy12) / 2) - (textsize[1] / 2))
 
                 # add text centered on image
-                cv2.putText(img, text1, (textX1, textY1), font, 1, (255, 255, 255), 2)
-                cv2.putText(img, text2, (textX2, textY2), font, 1, (255, 255, 255), 2)
+                cv2.putText(img, text1, (textX1, textY1), font, 1, (0, 0, 0), 2)
+                cv2.putText(img, text2, (textX2, textY2), font, 1, (0, 0, 0), 2)
         return img, flag, s
     @classmethod
     def execute_on_outputs(
